@@ -41,8 +41,43 @@ uv sync
 
 This downloads and extracts the dataset ZIP into the current directory.
 
-## Usage
+### 5. Configure external-data API keys
+
+The analysis joins external state-level confounders. Create a `.env` file in the
+project root:
 
 ```bash
-uv run python main.py
+CENSUS_API_KEY=your_census_key   # free: https://api.census.gov/data/key_signup.html
+DATA_GOV_API_KEY=your_datagov_key # free: https://api.data.gov/signup/ (or DEMO_KEY)
 ```
+
+## Usage
+
+Run the whole reproducible pipeline (clean → fetch → model → report):
+
+```bash
+./run_all.sh
+```
+
+Outputs:
+- **`findings.md`** — running activity log + results (data profile, models, limitations).
+- **`figures/`** — charts (trend, per-capita rates, IRR forest plot, density scatter).
+- **`data/processed/`** — cleaned incidents and the assembled state-year panel.
+
+External API pulls are cached under `data/raw/`, so re-runs are offline and
+reproducible. Individual stages can be run on their own, e.g.:
+
+```bash
+uv run python src/05_model_rates.py
+```
+
+### What the analysis does
+
+1. **Within-incident models** (cases only) — logistic regressions for whether a
+   shooting involved an unarmed/fleeing/mentally-ill person or a body camera.
+2. **Rate + confounder models** — a state-year panel (51 states × 10 years) joining
+   Census demographics/poverty/income, FBI violent crime, gun background checks,
+   alcohol & mental-distress prevalence, and population density. A Poisson rate model
+   (population offset, cluster-robust SE) estimates which factors drive the per-capita
+   shooting rate, and a disparity model tests whether the Black/White gap survives
+   adjustment.

@@ -17,3 +17,7 @@ data/
 # Kaggle credentials
 kaggle.json
 .kaggle/
+
+# secrets
+.env
+
