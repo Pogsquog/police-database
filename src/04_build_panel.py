@@ -112,6 +112,14 @@ def main():
         rows.append(sub)
     race_panel = pd.concat(rows, ignore_index=True)
     race_panel = race_panel[race_panel["group_pop"] > 0]
+
+    # arrests (encounter/exposure proxy) — Black/White only; left-join, may be null
+    arr_path = RAW / "fbi_arrests_state_year.csv"
+    if arr_path.exists():
+        arr = pd.read_csv(arr_path)
+        race_panel = race_panel.merge(arr, on=["state", "year", "race"], how="left")
+    else:
+        race_panel["arrests"] = float("nan")
     race_panel.to_parquet(PROCESSED / "race_panel.parquet")
 
     # --- 10-year cross-section --------------------------------------------

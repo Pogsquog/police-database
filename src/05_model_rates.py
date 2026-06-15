@@ -98,6 +98,34 @@ def fit_disparity(race_panel):
     return base, adj, len(d)
 
 
+def fit_arrest_benchmark(race_panel):
+    """Black/White disparity using ARRESTS as the exposure denominator instead of
+    population. Answers: per police-contact (arrest) — not per resident — are Black
+    people fatally shot at a higher rate? Black vs White only (FBI arrest race has
+    no Hispanic ethnicity). Poisson with log(arrests) offset, cluster-robust by
+    state, year FE. Returns (per_pop_RR, per_arrest_RR, n) or None if no arrests."""
+    if "arrests" not in race_panel.columns:
+        return None
+    d = race_panel[race_panel["race"].isin(["White", "Black"])].copy()
+    d = d.dropna(subset=["arrests", "group_pop"])
+    d = d[(d["arrests"] > 0) & (d["group_pop"] > 0)]
+    if d["arrests"].nunique() < 10:
+        return None
+    d["race"] = pd.Categorical(d["race"], ["White", "Black"])
+
+    pop = smf.glm("count ~ C(race) + C(year)", data=d, family=sm.families.Poisson(),
+                  offset=np.log(d["group_pop"])).fit(
+                      cov_type="cluster", cov_kwds={"groups": d["state"]})
+    arr = smf.glm("count ~ C(race) + C(year)", data=d, family=sm.families.Poisson(),
+                  offset=np.log(d["arrests"])).fit(
+                      cov_type="cluster", cov_kwds={"groups": d["state"]})
+
+    def rr(res):
+        t = "C(race)[T.Black]"
+        return np.exp(res.params[t]), tuple(np.exp(res.conf_int().loc[t]))
+    return rr(pop), rr(arr), len(d)
+
+
 def vif_report(panel):
     from statsmodels.stats.outliers_influence import variance_inflation_factor
     d = panel.dropna(subset=CONTINUOUS).copy()
@@ -155,7 +183,27 @@ def main():
                    f"not accounted for by these confounders.")
     body.append(verdict + "\n")
 
-    body.append("\n### 6c. Collinearity (VIF)\n")
+    # 6c. arrest-exposure benchmark
+    bench = fit_arrest_benchmark(race)
+    if bench is not None:
+        (pp, pp_ci), (pa, pa_ci), nb = bench
+        body.append("\n### 6c. Encounter benchmark — shootings per arrest, not per resident\n")
+        body.append(f"Black-vs-White rate ratio re-estimated with **arrests** as the "
+                    f"exposure denominator (FBI arrest totals; Black/White only; "
+                    f"N={nb} state-year cells):\n")
+        body.append("| Denominator | Black/White RR | 95% CI |\n|---|---|---|")
+        body.append(f"| Per resident (population) | {pp:.2f} | {pp_ci[0]:.2f}–{pp_ci[1]:.2f} |")
+        body.append(f"| Per arrest (encounter proxy) | {pa:.2f} | {pa_ci[0]:.2f}–{pa_ci[1]:.2f} |")
+        body.append(
+            f"\nBenchmarking against arrests shrinks the disparity from "
+            f"**{pp:.2f}×** to **{pa:.2f}×**: most of the per-resident gap reflects that "
+            f"Black Americans are arrested / come into police contact at far higher "
+            f"per-capita rates. A residual **{pa:.2f}×** disparity remains even per arrest. "
+            f"*Caveat: arrests are themselves a policing output and may absorb upstream "
+            f"disparities in who is stopped/arrested — this is a narrower, contested "
+            f"benchmark, not a truer one.*\n")
+
+    body.append("\n### 6d. Collinearity (VIF)\n")
     body.append(vif_report(panel))
 
     section("6. Rate & disparity models", "\n".join(body))
@@ -166,6 +214,13 @@ def main():
                          "ci_high": np.exp(pois.conf_int()[1]),
                          "p": pois.pvalues})
     coef.to_csv(PROCESSED / "rate_model_coefs.csv")
+
+    if bench is not None:
+        (pp, pp_ci), (pa, pa_ci), nb = bench
+        pd.DataFrame([
+            {"denominator": "population", "rr": pp, "lo": pp_ci[0], "hi": pp_ci[1]},
+            {"denominator": "arrests", "rr": pa, "lo": pa_ci[0], "hi": pa_ci[1]},
+        ]).to_csv(PROCESSED / "arrest_benchmark.csv", index=False)
     log(f"Overall model N={n}, dispersion={disp:.2f}. "
         f"Black RR {b_un:.2f}->{b_adj:.2f} after adjustment.")
 

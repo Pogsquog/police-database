@@ -4,7 +4,7 @@ A reproducible analysis of the Washington Post Fatal Police Shootings dataset (2
 
 
 ## 1. Data profile & cleaning (WaPo files)
-_logged 2026-06-15 15:50 UTC_
+_logged 2026-06-15 18:17 UTC_
 
 **Incidents:** 10,430 fatal shootings, 2015-01-02 → 2024-12-31.
 **Agencies:** 3,727 agencies (7 types).
@@ -118,7 +118,7 @@ _logged 2026-06-15 15:50 UTC_
 
 
 ## 2. Census demographics fetch
-_logged 2026-06-15 15:50 UTC_
+_logged 2026-06-15 18:17 UTC_
 
 ACS5 demographics fetched for years: [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024].
 
@@ -126,14 +126,24 @@ Rows by source: {'ACS5': 510}. States×years = 51×10.
 
 
 ## 3. FBI violent-crime fetch
-_logged 2026-06-15 15:50 UTC_
+_logged 2026-06-15 18:17 UTC_
 
 FBI CDE violent-crime rates fetched for 51 states, 10 years (510 rows).
 National mean violent-crime rate across panel: 381 per 100k.
 
 
+## 3b. FBI arrests-by-race fetch (encounter proxy)
+_logged 2026-06-15 18:17 UTC_
+
+FBI arrest totals by race fetched for 51 states × 10 years (510 state-years; 1020 state-year-race rows).
+
+National totals 2015–2024 — White: 50,925,698, Black: 20,790,095 (Black = 29.0% of Black+White arrests).
+
+Used as the **arrest-exposure denominator** in the disparity benchmark (script 05). FBI arrest race has no Hispanic ethnicity ⇒ Black-vs-White only. Same NIBRS-coverage caveats as violent crime apply.
+
+
 ## 4. Contextual confounders fetch (guns, alcohol, mental health, density)
-_logged 2026-06-15 15:50 UTC_
+_logged 2026-06-15 18:17 UTC_
 
 - NICS background checks: 459 state-years (2015-2023).
 - CDC CDI: ['alcohol_binge_pct', 'mental_distress_pct'] across 2019-2023 (51 states; BRFSS, not every year per state — gaps filled with state means at panel build).
@@ -141,7 +151,7 @@ _logged 2026-06-15 15:50 UTC_
 
 
 ## 5. State-year panel assembly
-_logged 2026-06-15 15:50 UTC_
+_logged 2026-06-15 18:17 UTC_
 
 Panel assembled: **510 state-years** (51 states × 10 years).
 Total shootings in panel: **10,430** (territories excluded).
@@ -164,7 +174,7 @@ Covariate coverage (non-null %):
 
 
 ## 6. Rate & disparity models
-_logged 2026-06-15 15:50 UTC_
+_logged 2026-06-15 18:17 UTC_
 
 ### 6a. Overall per-capita rate model (Poisson GLM, log-pop offset, cluster-robust SE by state; N=478 state-years)
 
@@ -200,7 +210,19 @@ Per-capita rate ratios vs **White** reference (N=1434 state-year-race cells):
 Adjusting for state-level violent crime, poverty, income, density and guns does **not** explain the gap — the Black-vs-White rate ratio is essentially unchanged (2.65× → 2.82×). The disparity is not accounted for by these confounders.
 
 
-### 6c. Collinearity (VIF)
+### 6c. Encounter benchmark — shootings per arrest, not per resident
+
+Black-vs-White rate ratio re-estimated with **arrests** as the exposure denominator (FBI arrest totals; Black/White only; N=1016 state-year cells):
+
+| Denominator | Black/White RR | 95% CI |
+|---|---|---|
+| Per resident (population) | 2.63 | 2.28–3.04 |
+| Per arrest (encounter proxy) | 1.29 | 1.08–1.56 |
+
+Benchmarking against arrests shrinks the disparity from **2.63×** to **1.29×**: most of the per-resident gap reflects that Black Americans are arrested / come into police contact at far higher per-capita rates. A residual **1.29×** disparity remains even per arrest. *Caveat: arrests are themselves a policing output and may absorb upstream disparities in who is stopped/arrested — this is a narrower, contested benchmark, not a truer one.*
+
+
+### 6d. Collinearity (VIF)
 
 | Factor | VIF |
 |---|---|
@@ -216,7 +238,7 @@ Adjusting for state-level violent crime, poverty, income, density and guns does 
 
 
 ## 7. Within-incident models (cases only)
-_logged 2026-06-15 15:50 UTC_
+_logged 2026-06-15 18:17 UTC_
 
 Odds ratios from logistic regression; **White** is the race reference, male the gender reference. Age is per +10 years. All models include year fixed effects. *Cases only — conditional on having been shot.*
 
@@ -269,9 +291,22 @@ Odds ratios from logistic regression; **White** is the race reference, male the 
 | Female | 0.71 | 0.56–0.90 | 0.004** |
 | South region | 0.94 | 0.85–1.03 | 0.198 |
 
+### Body-camera disparity — is it the department, not the person?
+
+The raw Black-vs-White body-camera OR (~1.9) is striking, but body-worn cameras are an *agency*-level program: large urban departments adopted them earliest and handle disproportionately more Black victims. Fixed effects isolate within-unit comparisons (agency FE is identified only on agencies that have both camera and non-camera shootings):
+
+| Adjustment | Black/White OR | 95% CI | N |
+|---|---|---|---|
+| Base (race + age + sex + year) | 1.80 | 1.58–2.05 | 9,063 |
+| + State fixed effects | 1.90 | 1.65–2.19 | 9,063 |
+| &nbsp;&nbsp;…same agencies, no agency FE | 1.24 | 1.06–1.47 | 4,343 |
+| + Agency fixed effects | 1.37 | 1.10–1.70 | 4,343 |
+
+State fixed effects leave the OR ~unchanged (it is **not** a between-state effect), but **agency** fixed effects collapse it from ~1.9 to ~1.3 — most of the gap is *which department was involved*, not differential camera use against individuals within a department. A modest residual (~1.3×) remains within the same agency.
+
 
 ## 8. Synthesis, figures & limitations
-_logged 2026-06-15 15:50 UTC_
+_logged 2026-06-15 18:17 UTC_
 
 ### Figures
 - `figures/trend.png` — shootings per year (a clear upward drift, ~995→1,175).
@@ -288,15 +323,21 @@ _logged 2026-06-15 15:50 UTC_
    state shooting rate (IRR ≈ 1.16 and 1.15 per +1 SD).
 3. **A state's Black population share does not predict its overall rate** once crime and
    density are controlled — the rate story is regional, not racial-composition driven.
-4. **But the Black/White disparity is real and not explained by these confounders.**
-   Black Americans are shot at ~2.6× the White per-capita rate; adjusting for state
-   violent crime, poverty, income, density and guns does not shrink it (≈2.8× adjusted).
+4. **The Black/White disparity is real and not explained by state confounders, but
+   most of it tracks police-contact exposure.** Black Americans are shot at ~2.6× the
+   White per-capita rate, unchanged by adjusting for crime/poverty/income/density/guns
+   (≈2.8×). Benchmarked against *arrests* instead of residents it falls to ~1.3×: most
+   of the per-resident gap reflects higher arrest/contact rates, with a ~1.3× residual
+   remaining even per arrest (arrests are themselves a policing output — a contested
+   benchmark, not a truer one).
 5. **Gun background checks and binge-drinking** show no robust independent association
    at the state level; poverty/income wash out once crime and density are included.
 6. **Within incidents:** Black victims are modestly more likely to be unarmed
    (OR 1.34) and fleeing (OR 1.21); White victims' shootings are far more often flagged
-   mental-illness-related (Black/Hispanic OR ≈ 0.56); body cameras are much less common
-   in the South (OR 0.64).
+   mental-illness-related (Black/Hispanic OR ≈ 0.56). The large raw body-camera gap
+   (Black OR ≈ 1.9) is mostly *agency-level* confounding — large urban departments
+   adopted cameras earliest and handle more Black victims; holding agency fixed it
+   falls to ≈1.3×.
 
 ### Limitations (read before citing)
 - **Numerator-only + ecological.** WaPo records only fatal shootings. State-level
@@ -311,3 +352,9 @@ _logged 2026-06-15 15:50 UTC_
   state means. These attenuate toward null rather than inflate effects.
 - **Missing race (11% of incidents)** and self-reported survey covariates add noise.
 - **Associational, not causal.** No claims of causation; these are adjusted associations.
+
+
+## 9. HTML report
+_logged 2026-06-15 18:17 UTC_
+
+Rendered self-contained `report.html` (232 KB) with embedded figures and result tables. Open it in any browser; regenerate with `uv run python src/08_report_html.py`.
