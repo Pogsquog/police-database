@@ -54,6 +54,10 @@ table.data td.num{text-align:right;font-variant-numeric:tabular-nums}
 td.up{color:var(--red);font-weight:700}
 td.down{color:var(--blue);font-weight:700}
 table.irr .barcell{width:170px}
+table.ladder td{vertical-align:middle}
+table.ladder td:first-child{font-weight:600;width:38%}
+.hbar{color:#fff;font-weight:700;font-size:.8rem;padding:.25rem .5rem;
+border-radius:4px;white-space:nowrap;min-width:2.6rem;text-align:right}
 svg.bar{width:160px;height:14px}
 details{margin-top:1rem}
 summary{cursor:pointer;font-weight:600;color:var(--blue);padding:.4rem 0}
@@ -68,7 +72,7 @@ code{background:#eef0f2;padding:.05rem .3rem;border-radius:4px;font-size:.85em}
 <body>
 <header class="hero">
   <div class="wrap">
-    <p class="eyebrow">Reproducible analysis · generated 2026-06-15 18:17 UTC</p>
+    <p class="eyebrow">Reproducible analysis · generated 2026-06-16 00:01 UTC</p>
     <h1>Factors Influencing US Fatal Police Shootings</h1>
     <p class="lede">A state-year panel and within-incident analysis of the
     <em>Washington Post</em> Fatal Police Shootings database (2015–2024),
@@ -701,6 +705,34 @@ code{background:#eef0f2;padding:.05rem .3rem;border-radius:4px;font-size:.85em}
     narrower, contested benchmark — not a "truer" number than the per-resident
     rate. The two answer different questions.</span>
   </div>
+  
+  <h3 style="margin-top:1.6rem">Does the arrest gap reflect offending or enforcement?</h3>
+  <p>The arrest benchmark can't tell higher offending apart from heavier policing —
+  arrests are a policing output. <strong>Homicide</strong> is the least discretionary
+  crime (almost always recorded; ~80–90% intra-racial), so the Black/White
+  homicide-<em>victimization</em> ratio proxies involvement in lethal violence
+  <em>without</em> passing through police discretion. The same disparity, measured
+  against progressively more exposure-aware (but more policing-entangled)
+  denominators:</p>
+  <table class='data ladder'><tbody><tr><td>Homicide victimization (offending proxy)</td><td class='barcell'><div class='hbar' style='width:100%;background:#7d3c98'>6.7×</div></td><td class='muted' style='font-size:.78rem'>CDC deaths; ~police-independent; national 2015–2020</td></tr><tr><td>Fatal police shooting, per resident</td><td class='barcell'><div class='hbar' style='width:39%;background:#b03a2e'>2.6×</div></td><td class='muted' style='font-size:.78rem'>WaPo / population; the headline disparity</td></tr><tr><td>Total arrest, per resident</td><td class='barcell'><div class='hbar' style='width:30%;background:#1f4e79'>2.0×</div></td><td class='muted' style='font-size:.78rem'>FBI arrests / population; a policing output</td></tr><tr><td>Fatal police shooting, per arrest</td><td class='barcell'><div class='hbar' style='width:19%;background:#b03a2e'>1.3×</div></td><td class='muted' style='font-size:.78rem'>WaPo / arrests; nets out contact exposure</td></tr></tbody></table>
+  <div class="panel callout">
+    The involvement proxy (<strong>6.7×</strong>) is <em>larger</em> than the
+    per-resident shooting disparity (<strong>2.6×</strong>) or the arrest disparity
+    (<strong>2.0×</strong>). So relative to involvement in serious violence, Black
+    arrest and shooting rates are <strong>not inflated</strong> — if anything they sit
+    below it. That argues against "police/states target Black people <em>regardless of
+    crime</em>" as a description of <em>serious</em> violence.
+    <br/><br/><span class="muted"><strong>Three caveats keep this open.</strong>
+    (1) Homicide is the wrong exposure for many shootings (traffic stops, mental-health
+    calls, low-level offenses), so benchmarking all shootings against it overstates
+    "justified" exposure. (2) Total arrests blend serious crime (which tracks
+    involvement) with low-level/drug offenses, where enforcement disparities are well
+    documented to exceed offending — the ~2× average hides that. (3) These are
+    ecological aggregates describing the country, not any single encounter; the choice
+    of denominator <em>brackets</em> the disparity rather than pinning it — population
+    over-states it by ignoring exposure, arrests/homicide under-state it by baking in
+    any upstream bias.</span>
+  </div>
 </section>
 
 <section id="incident">
@@ -738,11 +770,12 @@ code{background:#eef0f2;padding:.05rem .3rem;border-radius:4px;font-size:.85em}
     <li><strong>A state's Black population share does not predict its overall
     rate</strong> once crime and density are controlled — the rate story is
     regional, not racial-composition driven.</li>
-    <li><strong>The Black/White disparity is real and unexplained by these
-    confounders</strong> per resident (≈2.6× → 2.8× adjusted). But benchmarked
-    against <strong>arrests</strong> (an encounter proxy) it falls to ~1.3× — most
-    of the per-resident gap reflects higher police-contact rates, with a ~1.3×
-    residual remaining even per arrest.</li>
+    <li><strong>The Black/White disparity depends entirely on the denominator.</strong>
+    Per resident it is ≈2.6× (unchanged by state confounders); per arrest ≈1.3×; and
+    against homicide-victimization (an offending proxy) Black involvement is ≈6.7× —
+    <em>larger</em> than the shooting gap. So the per-resident gap mostly tracks
+    police-contact exposure, and relative to serious-violence involvement the shooting
+    rate is not inflated — though that conclusion is bracketed, not settled (see §4).</li>
     <li><strong>Guns and binge-drinking</strong> show no robust independent
     state-level association; poverty/income wash out once crime and density
     are included.</li>
@@ -779,7 +812,7 @@ code{background:#eef0f2;padding:.05rem .3rem;border-radius:4px;font-size:.85em}
   <p>Generated by <code>src/08_report_html.py</code> from the reproducible
   pipeline (<code>./run_all.sh</code>). Source: Washington Post Fatal Police
   Shootings database; Census ACS5; FBI Crime Data Explorer (crime + arrests);
-  FBI/NICS; CDC BRFSS.
+  FBI/NICS; CDC BRFSS; CDC WONDER (homicide mortality).
   Full activity log in <code>findings.md</code>.</p>
 </div></footer>
 </body></html>

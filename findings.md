@@ -4,7 +4,7 @@ A reproducible analysis of the Washington Post Fatal Police Shootings dataset (2
 
 
 ## 1. Data profile & cleaning (WaPo files)
-_logged 2026-06-15 18:17 UTC_
+_logged 2026-06-16 00:01 UTC_
 
 **Incidents:** 10,430 fatal shootings, 2015-01-02 → 2024-12-31.
 **Agencies:** 3,727 agencies (7 types).
@@ -118,7 +118,7 @@ _logged 2026-06-15 18:17 UTC_
 
 
 ## 2. Census demographics fetch
-_logged 2026-06-15 18:17 UTC_
+_logged 2026-06-16 00:01 UTC_
 
 ACS5 demographics fetched for years: [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024].
 
@@ -126,14 +126,14 @@ Rows by source: {'ACS5': 510}. States×years = 51×10.
 
 
 ## 3. FBI violent-crime fetch
-_logged 2026-06-15 18:17 UTC_
+_logged 2026-06-16 00:01 UTC_
 
 FBI CDE violent-crime rates fetched for 51 states, 10 years (510 rows).
 National mean violent-crime rate across panel: 381 per 100k.
 
 
 ## 3b. FBI arrests-by-race fetch (encounter proxy)
-_logged 2026-06-15 18:17 UTC_
+_logged 2026-06-16 00:01 UTC_
 
 FBI arrest totals by race fetched for 51 states × 10 years (510 state-years; 1020 state-year-race rows).
 
@@ -142,8 +142,23 @@ National totals 2015–2024 — White: 50,925,698, Black: 20,790,095 (Black = 29
 Used as the **arrest-exposure denominator** in the disparity benchmark (script 05). FBI arrest race has no Hispanic ethnicity ⇒ Black-vs-White only. Same NIBRS-coverage caveats as violent crime apply.
 
 
+## 3c. CDC homicide-by-race fetch (offending proxy)
+_logged 2026-06-16 00:01 UTC_
+
+CDC WONDER homicide victimization by race, US 2015–2020 (ICD-10 X85–Y09, Y87.1). National only — WONDER's API blocks state grouping.
+
+| Race | Homicide deaths | Crude rate /100k |
+|---|---|---|
+| American Indian or Alaska Native | 2,013 | 7.1 |
+| Asian or Pacific Islander | 2,244 | 1.8 |
+| Black or African American | 62,909 | 22.8 |
+| White | 52,017 | 3.4 |
+
+**Black/White homicide-victimization ratio ≈ 6.7×** — a police-independent proxy for involvement in lethal violence (homicide is ~80–90% intra-racial). Compared against the arrest and shooting disparities in the offending-benchmark ladder (script 05).
+
+
 ## 4. Contextual confounders fetch (guns, alcohol, mental health, density)
-_logged 2026-06-15 18:17 UTC_
+_logged 2026-06-16 00:01 UTC_
 
 - NICS background checks: 459 state-years (2015-2023).
 - CDC CDI: ['alcohol_binge_pct', 'mental_distress_pct'] across 2019-2023 (51 states; BRFSS, not every year per state — gaps filled with state means at panel build).
@@ -151,7 +166,7 @@ _logged 2026-06-15 18:17 UTC_
 
 
 ## 5. State-year panel assembly
-_logged 2026-06-15 18:17 UTC_
+_logged 2026-06-16 00:01 UTC_
 
 Panel assembled: **510 state-years** (51 states × 10 years).
 Total shootings in panel: **10,430** (territories excluded).
@@ -174,7 +189,7 @@ Covariate coverage (non-null %):
 
 
 ## 6. Rate & disparity models
-_logged 2026-06-15 18:17 UTC_
+_logged 2026-06-16 00:01 UTC_
 
 ### 6a. Overall per-capita rate model (Poisson GLM, log-pop offset, cluster-robust SE by state; N=478 state-years)
 
@@ -222,7 +237,23 @@ Black-vs-White rate ratio re-estimated with **arrests** as the exposure denomina
 Benchmarking against arrests shrinks the disparity from **2.63×** to **1.29×**: most of the per-resident gap reflects that Black Americans are arrested / come into police contact at far higher per-capita rates. A residual **1.29×** disparity remains even per arrest. *Caveat: arrests are themselves a policing output and may absorb upstream disparities in who is stopped/arrested — this is a narrower, contested benchmark, not a truer one.*
 
 
-### 6d. Collinearity (VIF)
+### 6d. Does the arrest gap reflect offending or enforcement?
+
+The arrest benchmark can't separate higher offending from heavier policing — arrests are a policing output. Homicide is the least discretionary crime (almost always recorded; ~80–90% intra-racial), so the Black/White homicide-*victimization* ratio proxies involvement in lethal violence without passing through police discretion. Placing all the disparities on one ladder:
+
+| Black/White ratio of… | Ratio | Denominator |
+|---|---|---|
+| Homicide victimization (offending proxy) | **6.7×** | CDC deaths; ~police-independent; national 2015–2020 |
+| Fatal police shooting, per resident | **2.6×** | WaPo / population; the headline disparity |
+| Total arrest, per resident | **2.0×** | FBI arrests / population; a policing output |
+| Fatal police shooting, per arrest | **1.3×** | WaPo / arrests; nets out contact exposure |
+
+The involvement proxy (**6.7×**) is *larger* than the shooting disparity per resident (**2.6×**) and the total-arrest disparity. So relative to involvement in serious violence, Black arrest and shooting rates are **not inflated** — if anything they sit below it. This argues against 'states arrest/shoot Black people *regardless of crime*' as a description of serious violence.
+
+**But three caveats keep this from settling the question.** (1) Homicide involvement is the wrong exposure for many shootings (traffic stops, mental-health calls, low-level offenses) — benchmarking *all* shootings against homicide overstates 'justified' exposure. (2) Total arrests blend serious crime (which tracks involvement) with low-level/drug offenses, where enforcement disparities are well documented to exceed offending — the ~2× average hides that. (3) These are ecological aggregates: they describe rates across the country, not any single encounter, and the choice of denominator (population vs. arrests vs. homicide) brackets the disparity rather than pinning it. Population over-states it by ignoring exposure; arrest/homicide under-state it by baking in any upstream bias.
+
+
+### 6e. Collinearity (VIF)
 
 | Factor | VIF |
 |---|---|
@@ -238,7 +269,7 @@ Benchmarking against arrests shrinks the disparity from **2.63×** to **1.29×**
 
 
 ## 7. Within-incident models (cases only)
-_logged 2026-06-15 18:17 UTC_
+_logged 2026-06-16 00:01 UTC_
 
 Odds ratios from logistic regression; **White** is the race reference, male the gender reference. Age is per +10 years. All models include year fixed effects. *Cases only — conditional on having been shot.*
 
@@ -306,7 +337,7 @@ State fixed effects leave the OR ~unchanged (it is **not** a between-state effec
 
 
 ## 8. Synthesis, figures & limitations
-_logged 2026-06-15 18:17 UTC_
+_logged 2026-06-16 00:01 UTC_
 
 ### Figures
 - `figures/trend.png` — shootings per year (a clear upward drift, ~995→1,175).
@@ -323,13 +354,15 @@ _logged 2026-06-15 18:17 UTC_
    state shooting rate (IRR ≈ 1.16 and 1.15 per +1 SD).
 3. **A state's Black population share does not predict its overall rate** once crime and
    density are controlled — the rate story is regional, not racial-composition driven.
-4. **The Black/White disparity is real and not explained by state confounders, but
-   most of it tracks police-contact exposure.** Black Americans are shot at ~2.6× the
-   White per-capita rate, unchanged by adjusting for crime/poverty/income/density/guns
-   (≈2.8×). Benchmarked against *arrests* instead of residents it falls to ~1.3×: most
-   of the per-resident gap reflects higher arrest/contact rates, with a ~1.3× residual
-   remaining even per arrest (arrests are themselves a policing output — a contested
-   benchmark, not a truer one).
+4. **The Black/White disparity is entirely denominator-dependent.** Per resident it is
+   ~2.6× (unchanged by adjusting for crime/poverty/income/density/guns, ≈2.8×); per
+   *arrest* ~1.3×; and against *homicide victimization* (a police-independent offending
+   proxy) Black involvement is ~6.7× — larger than the shooting gap. Most of the
+   per-resident gap reflects higher arrest/contact exposure, and relative to serious-
+   violence involvement the shooting rate is not inflated. This brackets rather than
+   settles the question: population over-states the gap by ignoring exposure, while
+   arrest/homicide denominators under-state it by baking in any upstream enforcement
+   bias, and homicide is the wrong exposure for many (traffic, mental-health) shootings.
 5. **Gun background checks and binge-drinking** show no robust independent association
    at the state level; poverty/income wash out once crime and density are included.
 6. **Within incidents:** Black victims are modestly more likely to be unarmed
@@ -355,6 +388,6 @@ _logged 2026-06-15 18:17 UTC_
 
 
 ## 9. HTML report
-_logged 2026-06-15 18:17 UTC_
+_logged 2026-06-16 00:01 UTC_
 
-Rendered self-contained `report.html` (232 KB) with embedded figures and result tables. Open it in any browser; regenerate with `uv run python src/08_report_html.py`.
+Rendered self-contained `report.html` (235 KB) with embedded figures and result tables. Open it in any browser; regenerate with `uv run python src/08_report_html.py`.

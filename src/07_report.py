@@ -83,13 +83,15 @@ def main():
    state shooting rate (IRR ≈ 1.16 and 1.15 per +1 SD).
 3. **A state's Black population share does not predict its overall rate** once crime and
    density are controlled — the rate story is regional, not racial-composition driven.
-4. **The Black/White disparity is real and not explained by state confounders, but
-   most of it tracks police-contact exposure.** Black Americans are shot at ~2.6× the
-   White per-capita rate, unchanged by adjusting for crime/poverty/income/density/guns
-   (≈2.8×). Benchmarked against *arrests* instead of residents it falls to ~1.3×: most
-   of the per-resident gap reflects higher arrest/contact rates, with a ~1.3× residual
-   remaining even per arrest (arrests are themselves a policing output — a contested
-   benchmark, not a truer one).
+4. **The Black/White disparity is entirely denominator-dependent.** Per resident it is
+   ~2.6× (unchanged by adjusting for crime/poverty/income/density/guns, ≈2.8×); per
+   *arrest* ~1.3×; and against *homicide victimization* (a police-independent offending
+   proxy) Black involvement is ~6.7× — larger than the shooting gap. Most of the
+   per-resident gap reflects higher arrest/contact exposure, and relative to serious-
+   violence involvement the shooting rate is not inflated. This brackets rather than
+   settles the question: population over-states the gap by ignoring exposure, while
+   arrest/homicide denominators under-state it by baking in any upstream enforcement
+   bias, and homicide is the wrong exposure for many (traffic, mental-health) shootings.
 5. **Gun background checks and binge-drinking** show no robust independent association
    at the state level; poverty/income wash out once crime and density are included.
 6. **Within incidents:** Black victims are modestly more likely to be unarmed

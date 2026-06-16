@@ -15,7 +15,7 @@ import pandas as pd
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 
-from common import PROCESSED, section, log
+from common import RAW, PROCESSED, section, log
 
 CONTINUOUS = ["pct_black", "pct_hispanic", "violent_crime_rate", "poverty_rate",
               "median_income_k", "nics_per_1k", "alcohol_binge_pct",
@@ -126,6 +126,49 @@ def fit_arrest_benchmark(race_panel):
     return rr(pop), rr(arr), len(d)
 
 
+def offending_ladder(race_panel, pp, pa):
+    """Assemble the Black/White 'benchmark ladder': the same disparity measured
+    against progressively more exposure-aware (but more policing-entangled)
+    denominators. Returns (markdown, DataFrame) or (None, None) if homicide data
+    is absent. pp/pa are the per-resident and per-arrest shooting RRs from
+    fit_arrest_benchmark."""
+    hom_path = RAW / "cdc_homicide_race.csv"
+    if not hom_path.exists():
+        return None, None
+    hom = pd.read_csv(hom_path).set_index("race")
+    try:
+        hom_rr = (hom.loc["Black or African American", "rate"]
+                  / hom.loc["White", "rate"])
+    except KeyError:
+        return None, None
+
+    # national pooled per-capita arrest RR (Black vs White)
+    a = race_panel[race_panel["race"].isin(["White", "Black"])].dropna(
+        subset=["arrests", "group_pop"])
+    arr_rate = a.groupby("race").apply(
+        lambda x: x["arrests"].sum() / x["group_pop"].sum())
+    arrest_rr = arr_rate["Black"] / arr_rate["White"]
+
+    rungs = [
+        ("Homicide victimization (offending proxy)", hom_rr,
+         "CDC deaths; ~police-independent; national 2015–2020"),
+        ("Fatal police shooting, per resident", pp,
+         "WaPo / population; the headline disparity"),
+        ("Total arrest, per resident", arrest_rr,
+         "FBI arrests / population; a policing output"),
+        ("Fatal police shooting, per arrest", pa,
+         "WaPo / arrests; nets out contact exposure"),
+    ]
+    df = pd.DataFrame([(n, round(r, 2), note) for n, r, note in rungs],
+                      columns=["benchmark", "black_white_ratio", "note"])
+    rows = ["| Black/White ratio of… | Ratio | Denominator |",
+            "|---|---|---|"]
+    for n, r, note in rungs:
+        rows.append(f"| {n} | **{r:.1f}×** | {note} |")
+    md = "\n".join(rows)
+    return md, df
+
+
 def vif_report(panel):
     from statsmodels.stats.outliers_influence import variance_inflation_factor
     d = panel.dropna(subset=CONTINUOUS).copy()
@@ -203,7 +246,44 @@ def main():
             f"disparities in who is stopped/arrested — this is a narrower, contested "
             f"benchmark, not a truer one.*\n")
 
-    body.append("\n### 6d. Collinearity (VIF)\n")
+    # 6d. offending benchmark ladder
+    ladder_md = None
+    if bench is not None:
+        (pp, _), (pa, _), _ = bench
+        ladder_md, ladder_df = offending_ladder(race, pp, pa)
+        if ladder_md is not None:
+            ladder_df.to_csv(PROCESSED / "offending_ladder.csv", index=False)
+            body.append("\n### 6d. Does the arrest gap reflect offending or enforcement?\n")
+            body.append(
+                "The arrest benchmark can't separate higher offending from heavier "
+                "policing — arrests are a policing output. Homicide is the least "
+                "discretionary crime (almost always recorded; ~80–90% intra-racial), "
+                "so the Black/White homicide-*victimization* ratio proxies involvement "
+                "in lethal violence without passing through police discretion. Placing "
+                "all the disparities on one ladder:\n")
+            body.append(ladder_md)
+            hom_rr = ladder_df.iloc[0]["black_white_ratio"]
+            body.append(
+                f"\nThe involvement proxy (**{hom_rr:.1f}×**) is *larger* than the "
+                f"shooting disparity per resident (**{pp:.1f}×**) and the total-arrest "
+                f"disparity. So relative to involvement in serious violence, Black "
+                f"arrest and shooting rates are **not inflated** — if anything they sit "
+                f"below it. This argues against 'states arrest/shoot Black people "
+                f"*regardless of crime*' as a description of serious violence.\n\n"
+                f"**But three caveats keep this from settling the question.** (1) "
+                f"Homicide involvement is the wrong exposure for many shootings (traffic "
+                f"stops, mental-health calls, low-level offenses) — benchmarking *all* "
+                f"shootings against homicide overstates 'justified' exposure. (2) Total "
+                f"arrests blend serious crime (which tracks involvement) with low-level/"
+                f"drug offenses, where enforcement disparities are well documented to "
+                f"exceed offending — the ~2× average hides that. (3) These are ecological "
+                f"aggregates: they describe rates across the country, not any single "
+                f"encounter, and the choice of denominator (population vs. arrests vs. "
+                f"homicide) brackets the disparity rather than pinning it. Population "
+                f"over-states it by ignoring exposure; arrest/homicide under-state it by "
+                f"baking in any upstream bias.\n")
+
+    body.append("\n### 6e. Collinearity (VIF)\n")
     body.append(vif_report(panel))
 
     section("6. Rate & disparity models", "\n".join(body))
