@@ -134,7 +134,7 @@ def main():
         summary[outcome] = (n, base)
 
     body.append(bodycam_confounding(d))
-    section("7. Within-incident models (cases only)", "\n".join(body))
+    section("8. Within-incident models (cases only)", "\n".join(body))
     log(f"Incident models fit for {list(OUTCOMES)} on N≈{summary['unarmed'][0]}.")
 
 

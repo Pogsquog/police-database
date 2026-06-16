@@ -73,12 +73,20 @@ def main():
 - `figures/state_rates.png` — per-capita rate by state.
 - `figures/rate_forest.png` — rate-model IRRs with 95% CIs.
 - `figures/density_scatter.png` — density vs rate.
+- `figures/rural_lethality.png` — fatal shootings per 1,000 violent crimes vs density.
 
 ### Key findings
 1. **Geography/urbanicity dominates the per-capita rate.** Population density is the
    strongest correlate: denser (more urban) states have *lower* per-capita shooting
    rates (IRR ≈ 0.67 per +1 SD). The highest-rate states are sparse Western ones
    (NM, AK, OK, CO, AZ); the lowest are dense Northeastern ones (RI, MA, CT, NY, NJ).
+   This rural excess is **counterintuitive but resolvable** (section 7): across states,
+   sparse ≠ low-crime (violent crime is flat-to-higher in sparse states), so the gap is a
+   *lethality-per-encounter* one — sparse states fatally shoot ~2.3× more per violent crime
+   and ~20% more per arrest. Density survives controls while gun prevalence washes out;
+   incident composition and a "rural sheriff" effect explain little (sparse shootings are
+   mostly municipal police). Consistent with officer isolation / thinner de-escalation
+   resources, plus a fatal-only artifact: rural wounds are likelier to prove fatal.
 2. **Violent crime and population mental-distress** are positively associated with the
    state shooting rate (IRR ≈ 1.16 and 1.15 per +1 SD).
 3. **A state's Black population share does not predict its overall rate** once crime and
@@ -115,7 +123,7 @@ def main():
 - **Missing race (11% of incidents)** and self-reported survey covariates add noise.
 - **Associational, not causal.** No claims of causation; these are adjusted associations.
 """
-    section("8. Synthesis, figures & limitations", synthesis)
+    section("9. Synthesis, figures & limitations", synthesis)
     log("Report complete; figures written to figures/.")
 
 

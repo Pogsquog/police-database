@@ -21,6 +21,8 @@ echo "==> 04 build state-year panel"
 uv run python src/04_build_panel.py
 echo "==> 05 rate & disparity models"
 uv run python src/05_model_rates.py
+echo "==> 05b rural paradox: lethality per encounter"
+uv run python src/05b_rural_analysis.py
 echo "==> 06 within-incident models"
 uv run python src/06_model_incident.py
 echo "==> 07 figures, synthesis & limitations"

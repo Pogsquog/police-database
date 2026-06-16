@@ -195,6 +195,77 @@ def ladder_block() -> str:
   </div>"""
 
 
+def rural_block() -> str:
+    """The rural paradox: sparse states have HIGHER rates — a lethality-per-
+    encounter gap, not a crime gap. Reads tidy outputs from step 05b."""
+    tp = PROCESSED / "rural_tertiles.csv"
+    sp = PROCESSED / "rural_stats.csv"
+    if not (tp.exists() and sp.exists()):
+        return ""
+    t = pd.read_csv(tp)
+    s = pd.read_csv(sp).iloc[0]
+
+    exp_rows = "".join(
+        f"<tr><td>{r['tertile']}</td>"
+        f"<td class='num'>{r['rate']:.2f}</td>"
+        f"<td class='num'>{r['vcr']:.0f}</td>"
+        f"<td class='num'>{r['per_1k_vc']:.1f}</td>"
+        f"<td class='num'>{r['per_10k_arr']:.2f}</td></tr>"
+        for _, r in t.iterrows())
+    comp_rows = "".join(
+        f"<tr><td>{r['tertile']}</td>"
+        f"<td class='num'>{r['pct_gun']:.0f}</td>"
+        f"<td class='num'>{r['pct_unarmed']:.0f}</td>"
+        f"<td class='num'>{r['pct_flee']:.0f}</td>"
+        f"<td class='num'>{r['pct_mental']:.0f}</td>"
+        f"<td class='num'>{r['pct_native']:.1f}</td>"
+        f"<td class='num'>{r['pct_sheriff']:.0f}</td></tr>"
+        for _, r in t.iterrows())
+    native_sparse = t.loc[t["tertile"] == "Sparse", "pct_native"].iloc[0]
+    native_dense = t.loc[t["tertile"] == "Dense", "pct_native"].iloc[0]
+    sher_sparse = t.loc[t["tertile"] == "Sparse", "pct_sheriff"].iloc[0]
+    sher_mid = t.loc[t["tertile"] == "Mid", "pct_sheriff"].iloc[0]
+
+    return f"""
+  <h3 style="margin-top:1.6rem">The rural paradox — why sparse states rank highest</h3>
+  <p>The negative density gradient is counterintuitive: shouldn't cities, with more
+  violent crime, see more police shootings? They do <em>within</em> a state — but
+  <strong>across</strong> states, sparse ones are not low-crime, so the gap is a
+  <strong>lethality-per-encounter</strong> gap, not a crime gap.</p>
+  <div class="grid2">
+    {fig_block('rural_lethality.png', 'Fatal shootings per 1,000 violent crimes fall steeply with density.')}
+    <div class="panel">
+      <h4>Rate vs exposure, by density tertile</h4>
+      <table class='data'><thead><tr><th>Tertile</th><th>Per 100k/yr</th>
+      <th>Violent crime</th><th>Per 1k crimes</th><th>Per 10k arrests</th></tr></thead>
+      <tbody>{exp_rows}</tbody></table>
+      <p class="muted" style="margin:.5rem 0 0">Violent crime is flat-to-higher in
+      sparse states, yet they fatally shoot ~2.3× more per violent crime and ~20%
+      more per arrest.</p>
+    </div>
+  </div>
+  <h4 style="margin-top:1.2rem">Incident composition explains little (% of incidents)</h4>
+  <table class='data'><thead><tr><th>Tertile</th><th>% gun-armed</th><th>% unarmed</th>
+  <th>% fleeing</th><th>% mental-health</th><th>% Native Am.</th><th>% sheriff</th>
+  </tr></thead><tbody>{comp_rows}</tbody></table>
+  <div class="panel callout">
+    Density survives every control (log-rate coef {s['density_coef_rate']:+.2f}; gun
+    prevalence washes out to ~0), and the lethality-per-crime model
+    (R²={s['leth_r2']:.2f}) keeps a density coef of {s['density_coef_leth']:+.2f} — so it
+    is <strong>not</strong> simply "more guns in the country." The
+    <strong>"rural sheriff" hypothesis fails</strong>: sparse-state shootings are mostly
+    municipal police, sheriff share is <em>lowest</em> there ({sher_sparse:.0f}% vs
+    {sher_mid:.0f}% mid-density), correlating only r={s['sheriff_r']:.2f} with the rate.
+    <strong>Native Americans</strong> ({native_sparse:.1f}% of sparse-state victims vs
+    {native_dense:.1f}% dense) are a real, concentrated contributor.
+    <br/><br/><span class="muted">What fits the signature: officer isolation / slow
+    backup and thinner de-escalation resources — plausible but unmeasured here. And a
+    <strong>fatal-only artifact</strong>: rural gunshot wounds are far from trauma care,
+    so a shooting is likelier to <em>prove fatal</em>; part of the rural excess in
+    <em>fatal</em> shootings may be higher case-fatality, not more shootings.</span>
+  </div>"""
+
+
 def disparity_table() -> str:
     rows = [
         ("Black", "2.65 (2.30–3.06)", "2.82 (2.43–3.28)", "Not explained"),
@@ -397,6 +468,7 @@ def build_html() -> str:
     {fig_block('state_rates.png', 'Annual fatal shootings per 100k by state (2015–2024 average).')}
     {fig_block('density_scatter.png', 'Population density vs shooting rate — a strong negative gradient.')}
   </div>
+  {rural_block()}
   <details><summary>Full state table ({len(cs)} jurisdictions)</summary>
   {state_table(cs)}
   </details>
@@ -461,7 +533,10 @@ def build_html() -> str:
   <h2>6 · Key findings</h2>
   <ol class="findings">
     <li><strong>Geography/urbanicity dominates the per-capita rate.</strong>
-    Density has IRR ≈ 0.67 per +1 SD; sparse Western states rank highest.</li>
+    Density has IRR ≈ 0.67 per +1 SD; sparse Western states rank highest. The
+    counterintuitive rural excess is a <em>lethality-per-encounter</em> gap, not a
+    crime gap — sparse states aren't low-crime, yet they fatally shoot ~2.3× more per
+    violent crime; the "rural sheriff" explanation does not hold.</li>
     <li><strong>Violent crime and population mental-distress</strong> are
     positively associated with the state rate (IRR ≈ 1.16 and 1.15).</li>
     <li><strong>A state's Black population share does not predict its overall
@@ -590,7 +665,7 @@ def main():
     OUT.write_text(html)
     size_kb = OUT.stat().st_size / 1024
     log(f"Wrote {OUT} ({size_kb:.0f} KB, self-contained).")
-    section("9. HTML report",
+    section("10. HTML report",
             f"Rendered self-contained `report.html` ({size_kb:.0f} KB) with "
             f"embedded figures and result tables. Open it in any browser; "
             f"regenerate with `uv run python src/08_report_html.py`.")
