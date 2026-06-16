@@ -86,7 +86,9 @@ def main():
    and ~20% more per arrest. Density survives controls while gun prevalence washes out;
    incident composition and a "rural sheriff" effect explain little (sparse shootings are
    mostly municipal police). Consistent with officer isolation / thinner de-escalation
-   resources, plus a fatal-only artifact: rural wounds are likelier to prove fatal.
+   resources, plus a fatal-only artifact: a placebo test (§7f) finds the shooting rate
+   tracks trauma-access-sensitive accident deaths (car crashes r≈0.47, falls) but *not* the
+   overdose negative control (r≈−0.11) — pointing to distance-to-medical-care case-fatality.
 2. **Violent crime and population mental-distress** are positively associated with the
    state shooting rate (IRR ≈ 1.16 and 1.15 per +1 SD).
 3. **A state's Black population share does not predict its overall rate** once crime and

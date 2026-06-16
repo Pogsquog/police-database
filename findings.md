@@ -4,7 +4,7 @@ A reproducible analysis of the Washington Post Fatal Police Shootings dataset (2
 
 
 ## 1. Data profile & cleaning (WaPo files)
-_logged 2026-06-16 00:33 UTC_
+_logged 2026-06-16 00:53 UTC_
 
 **Incidents:** 10,430 fatal shootings, 2015-01-02 → 2024-12-31.
 **Agencies:** 3,727 agencies (7 types).
@@ -118,7 +118,7 @@ _logged 2026-06-16 00:33 UTC_
 
 
 ## 2. Census demographics fetch
-_logged 2026-06-16 00:33 UTC_
+_logged 2026-06-16 00:53 UTC_
 
 ACS5 demographics fetched for years: [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024].
 
@@ -126,14 +126,14 @@ Rows by source: {'ACS5': 510}. States×years = 51×10.
 
 
 ## 3. FBI violent-crime fetch
-_logged 2026-06-16 00:33 UTC_
+_logged 2026-06-16 00:53 UTC_
 
 FBI CDE violent-crime rates fetched for 51 states, 10 years (510 rows).
 National mean violent-crime rate across panel: 381 per 100k.
 
 
 ## 3b. FBI arrests-by-race fetch (encounter proxy)
-_logged 2026-06-16 00:33 UTC_
+_logged 2026-06-16 00:53 UTC_
 
 FBI arrest totals by race fetched for 51 states × 10 years (510 state-years; 1020 state-year-race rows).
 
@@ -143,7 +143,7 @@ Used as the **arrest-exposure denominator** in the disparity benchmark (script 0
 
 
 ## 3c. CDC homicide-by-race fetch (offending proxy)
-_logged 2026-06-16 00:33 UTC_
+_logged 2026-06-16 00:53 UTC_
 
 CDC WONDER homicide victimization by race, US 2015–2020 (ICD-10 X85–Y09, Y87.1). National only — WONDER's API blocks state grouping.
 
@@ -157,8 +157,22 @@ CDC WONDER homicide victimization by race, US 2015–2020 (ICD-10 X85–Y09, Y87
 **Black/White homicide-victimization ratio ≈ 6.7×** — a police-independent proxy for involvement in lethal violence (homicide is ~80–90% intra-racial). Compared against the arrest and shooting disparities in the offending-benchmark ladder (script 05).
 
 
+## 3d. CDC accident-mortality fetch (medical-access proxy)
+_logged 2026-06-16 00:53 UTC_
+
+State accident-mortality proxies for the 'distance to medical care' test (see 05b §7f). Per-capita accident deaths whose lethality depends on fast trauma care (motor vehicle, falls) vs a negative control whose lethality does not (drug overdose).
+
+| Source | Measure | States |
+|---|---|---|
+| NCHS Leading Causes `bi63-dtpu` | Unintentional-injury deaths & age-adj rate, 2015–2017 | 51 |
+| NCHS `rqg5-mkef` | Motor-vehicle occupant death rate /100k (2012 & 2014) | 50 |
+| NCHS Drug Poisoning by State `44rk-q6r2` | Overdose death rate /100k, 2015–2017 | 51 |
+
+WONDER's API serves national data only, so these state-level series come from CDC's Socrata endpoints. Analysed in script 05b.
+
+
 ## 4. Contextual confounders fetch (guns, alcohol, mental health, density)
-_logged 2026-06-16 00:33 UTC_
+_logged 2026-06-16 00:53 UTC_
 
 - NICS background checks: 459 state-years (2015-2023).
 - CDC CDI: ['alcohol_binge_pct', 'mental_distress_pct'] across 2019-2023 (51 states; BRFSS, not every year per state — gaps filled with state means at panel build).
@@ -166,7 +180,7 @@ _logged 2026-06-16 00:33 UTC_
 
 
 ## 5. State-year panel assembly
-_logged 2026-06-16 00:33 UTC_
+_logged 2026-06-16 00:53 UTC_
 
 Panel assembled: **510 state-years** (51 states × 10 years).
 Total shootings in panel: **10,430** (territories excluded).
@@ -189,7 +203,7 @@ Covariate coverage (non-null %):
 
 
 ## 6. Rate & disparity models
-_logged 2026-06-16 00:33 UTC_
+_logged 2026-06-16 00:53 UTC_
 
 ### 6a. Overall per-capita rate model (Poisson GLM, log-pop offset, cluster-robust SE by state; N=478 state-years)
 
@@ -269,7 +283,7 @@ The involvement proxy (**6.7×**) is *larger* than the shooting disparity per re
 
 
 ## 7. The rural paradox — lethality, not crime
-_logged 2026-06-16 00:33 UTC_
+_logged 2026-06-16 00:53 UTC_
 
 **The puzzle:** denser (more urban) states have *lower* per-capita fatal shooting rates (rate IRR ≈ 0.67 per +1 SD of log-density), even though, *within* any state, cities carry the violent crime. The resolution is that the gradient is a **lethality-per-encounter** gap, not a crime gap.
 
@@ -321,11 +335,30 @@ Linking each incident to its WaPo agency type, sparse-state shootings are predom
 
 ### 7e. What fits — and a fatal-only caveat
 
-The signature (a lethality-per-encounter gap, not a crime or composition gap) is consistent with **how rural encounters are handled**: officer isolation and slow/absent backup pushing faster lethal-force decisions, fewer crisis-intervention/de-escalation resources, and higher gun-carry. These are plausible but **unmeasured** here. Crucially, WaPo records *fatal* shootings only: rural gunshot victims are far from trauma care, so a shooting is more likely to **prove fatal** — part of the rural excess in *fatal* shootings may be higher case-fatality rather than more shootings. Numerator-only data cannot separate the two. See `figures/rural_lethality.png`.
+The signature (a lethality-per-encounter gap, not a crime or composition gap) is consistent with **how rural encounters are handled**: officer isolation and slow/absent backup pushing faster lethal-force decisions, fewer crisis-intervention/de-escalation resources, and higher gun-carry. These are plausible but **unmeasured** here. Crucially, WaPo records *fatal* shootings only: rural gunshot victims are far from trauma care, so a shooting is more likely to **prove fatal** — part of the rural excess in *fatal* shootings may be higher case-fatality rather than more shootings. Numerator-only data cannot separate the two directly, but §7f tests the mechanism. See `figures/rural_lethality.png`.
+
+
+### 7f. Testing the 'distance to medical care' hypothesis
+
+WaPo records *fatal* shootings only, and a gunshot is likelier to **prove fatal** where trauma care is far. We can't measure shooting case-fatality directly, but we can test the *mechanism* with other injuries whose lethality the same EMS/trauma-access factor governs — a discriminant (placebo) design. If medical access matters, accident deaths that are **trauma-access-sensitive** (car crashes, falls) should track the state shooting rate, while **drug overdose** — whose lethality is about addiction, not trauma-centre distance — should not.
+
+Cross-state correlations (N≈51):
+
+| State accident-death rate | vs shooting rate | vs lethality/crime | vs density | Trauma-access? |
+|---|---|---|---|---|
+| Motor vehicle (car) | +0.47 | +0.41 | -0.57 | trauma-access-sensitive |
+| Accidents excl. overdose (car + falls) | +0.48 | +0.46 | -0.63 | trauma-access-sensitive |
+| All unintentional injury | +0.42 | +0.36 | -0.18 | mixed |
+| Drug overdose (negative control) | -0.11 | -0.05 | +0.49 | NOT trauma-access |
+
+The pattern is exactly what the medical-access theory predicts. Trauma-access-sensitive deaths track the shooting rate (**motor vehicle r=+0.47**, accidents-excluding-overdose **r=+0.48**), while the non-trauma negative control is **null/negative (overdose r=-0.11)** — even though overdose deaths are also high in poor (often denser) areas, correlating *positively* with density. So this is not a generic 'deadly or poor places' signal: it is specific to the kind of injury-death that *getting to a trauma centre fast* governs. Motor-vehicle mortality even retains a positive partial association controlling for density and crime (β=+0.11), though it is collinear with density (r=-0.57) so the joint model cannot cleanly separate the two.
+
+
+**Caveats.** (1) Per-capita accident deaths blend *more accidents* (rural driving exposure, speed) with *accidents being more lethal* (case-fatality), so this is consistent-with, not proof of, the medical-access channel — though the overdose placebo rules out a purely generic-risk explanation. (2) Ecological and cross-sectional; the MV proxy is 2012/2014 occupant deaths (state rankings are stable). (3) It shows the rural *lethality environment* tracks shootings; it cannot prove individual rural shootings are more often fatal (no non-fatal denominator). See `figures/rural_medaccess.png`.
 
 
 ## 8. Within-incident models (cases only)
-_logged 2026-06-16 00:33 UTC_
+_logged 2026-06-16 00:53 UTC_
 
 Odds ratios from logistic regression; **White** is the race reference, male the gender reference. Age is per +10 years. All models include year fixed effects. *Cases only — conditional on having been shot.*
 
@@ -393,7 +426,7 @@ State fixed effects leave the OR ~unchanged (it is **not** a between-state effec
 
 
 ## 9. Synthesis, figures & limitations
-_logged 2026-06-16 00:33 UTC_
+_logged 2026-06-16 00:53 UTC_
 
 ### Figures
 - `figures/trend.png` — shootings per year (a clear upward drift, ~995→1,175).
@@ -413,7 +446,9 @@ _logged 2026-06-16 00:33 UTC_
    and ~20% more per arrest. Density survives controls while gun prevalence washes out;
    incident composition and a "rural sheriff" effect explain little (sparse shootings are
    mostly municipal police). Consistent with officer isolation / thinner de-escalation
-   resources, plus a fatal-only artifact: rural wounds are likelier to prove fatal.
+   resources, plus a fatal-only artifact: a placebo test (§7f) finds the shooting rate
+   tracks trauma-access-sensitive accident deaths (car crashes r≈0.47, falls) but *not* the
+   overdose negative control (r≈−0.11) — pointing to distance-to-medical-care case-fatality.
 2. **Violent crime and population mental-distress** are positively associated with the
    state shooting rate (IRR ≈ 1.16 and 1.15 per +1 SD).
 3. **A state's Black population share does not predict its overall rate** once crime and
@@ -452,6 +487,6 @@ _logged 2026-06-16 00:33 UTC_
 
 
 ## 10. HTML report
-_logged 2026-06-16 00:33 UTC_
+_logged 2026-06-16 00:53 UTC_
 
-Rendered self-contained `report.html` (307 KB) with embedded figures and result tables. Open it in any browser; regenerate with `uv run python src/08_report_html.py`.
+Rendered self-contained `report.html` (345 KB) with embedded figures and result tables. Open it in any browser; regenerate with `uv run python src/08_report_html.py`.

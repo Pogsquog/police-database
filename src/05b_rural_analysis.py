@@ -84,6 +84,100 @@ def composition(inc, ag, cs):
     return comp, sher
 
 
+def medical_access(d):
+    """Discriminant test of the 'distance to medical care' hypothesis: do accident
+    deaths whose lethality depends on trauma access (motor vehicle, falls) track the
+    shooting rate, while a non-trauma negative control (overdose) does not? Returns
+    (markdown, corr_df) or (None, None) if the injury data is absent. `d` is the
+    augmented cross-section from build() (has shoot_per_1k_vc, pop_mean, z_ cols)."""
+    inj_path = RAW / "cdc_injury_state.csv"
+    if not inj_path.exists():
+        return None, None
+    inj = pd.read_csv(inj_path)
+    m = d.merge(inj, on="state", how="left")
+    # crude accident rate and a non-overdose ("trauma") accident rate, both /100k
+    m["accident_crude"] = m["accident_deaths"] / (3 * m["pop_mean"]) * 1e5
+    m["accident_exod"] = m["accident_crude"] - m["overdose_rate"]
+
+    measures = [
+        ("mv_rate", "Motor vehicle (car)", "trauma-access-sensitive"),
+        ("accident_exod", "Accidents excl. overdose (car + falls)", "trauma-access-sensitive"),
+        ("accident_aadr", "All unintentional injury", "mixed"),
+        ("overdose_rate", "Drug overdose (negative control)", "NOT trauma-access"),
+    ]
+    rows = []
+    for col, lbl, kind in measures:
+        s = m.dropna(subset=[col, "shoot_per_1k_vc"])
+        rows.append({
+            "measure": lbl, "kind": kind,
+            "r_rate": np.corrcoef(s[col], s["shootings_per_100k_yr"])[0, 1],
+            "r_leth": np.corrcoef(s[col], s["shoot_per_1k_vc"])[0, 1],
+            "r_density": np.corrcoef(s[col], s["log_density"])[0, 1],
+        })
+    corr = pd.DataFrame(rows)
+
+    # does a trauma-access proxy add over density+crime, and does overdose (placebo)?
+    for c in ["mv_rate", "overdose_rate", "violent_crime_rate"]:
+        m["z_" + c] = (m[c] - m[c].mean()) / m[c].std()
+    mv_m = smf.ols("ly ~ z_log_density + z_violent_crime_rate + z_mv_rate", m).fit()
+
+    c = corr.set_index("measure")
+    md = []
+    md.append("\n### 7f. Testing the 'distance to medical care' hypothesis\n")
+    md.append("WaPo records *fatal* shootings only, and a gunshot is likelier to **prove "
+              "fatal** where trauma care is far. We can't measure shooting case-fatality "
+              "directly, but we can test the *mechanism* with other injuries whose lethality "
+              "the same EMS/trauma-access factor governs — a discriminant (placebo) design. "
+              "If medical access matters, accident deaths that are **trauma-access-sensitive** "
+              "(car crashes, falls) should track the state shooting rate, while **drug "
+              "overdose** — whose lethality is about addiction, not trauma-centre distance — "
+              "should not.\n")
+    md.append("Cross-state correlations (N≈51):\n")
+    md.append("| State accident-death rate | vs shooting rate | vs lethality/crime | vs density | Trauma-access? |\n"
+              "|---|---|---|---|---|")
+    for col, lbl, kind in measures:
+        r = c.loc[lbl]
+        md.append(f"| {lbl} | {r['r_rate']:+.2f} | {r['r_leth']:+.2f} | "
+                  f"{r['r_density']:+.2f} | {kind} |")
+    mv_r = c.loc["Motor vehicle (car)", "r_rate"]
+    od_r = c.loc["Drug overdose (negative control)", "r_rate"]
+    ex_r = c.loc["Accidents excl. overdose (car + falls)", "r_rate"]
+    md.append(
+        f"\nThe pattern is exactly what the medical-access theory predicts. Trauma-access-"
+        f"sensitive deaths track the shooting rate (**motor vehicle r={mv_r:+.2f}**, "
+        f"accidents-excluding-overdose **r={ex_r:+.2f}**), while the non-trauma negative "
+        f"control is **null/negative (overdose r={od_r:+.2f})** — even though overdose deaths "
+        f"are also high in poor (often denser) areas, correlating *positively* with density. "
+        f"So this is not a generic 'deadly or poor places' signal: it is specific to the kind "
+        f"of injury-death that *getting to a trauma centre fast* governs. Motor-vehicle "
+        f"mortality even retains a positive partial association controlling for density and "
+        f"crime (β={mv_m.params['z_mv_rate']:+.2f}), though it is collinear with density "
+        f"(r={c.loc['Motor vehicle (car)','r_density']:+.2f}) so the joint model cannot cleanly "
+        f"separate the two.\n")
+    md.append(
+        "\n**Caveats.** (1) Per-capita accident deaths blend *more accidents* (rural driving "
+        "exposure, speed) with *accidents being more lethal* (case-fatality), so this is "
+        "consistent-with, not proof of, the medical-access channel — though the overdose "
+        "placebo rules out a purely generic-risk explanation. (2) Ecological and "
+        "cross-sectional; the MV proxy is 2012/2014 occupant deaths (state rankings are "
+        "stable). (3) It shows the rural *lethality environment* tracks shootings; it cannot "
+        "prove individual rural shootings are more often fatal (no non-fatal denominator). "
+        "See `figures/rural_medaccess.png`.\n")
+    return "\n".join(md), corr
+
+
+def fig_medaccess(corr):
+    order = corr.iloc[::-1]
+    colors = ["#b03a2e" if "NOT" in k else "#1f4e79" for k in order["kind"]]
+    fig, ax = plt.subplots(figsize=(6.6, 3.4))
+    ax.barh(order["measure"], order["r_rate"], color=colors)
+    ax.axvline(0, color="#444", lw=.8)
+    ax.set(title="Correlation with state shooting rate, by accident type",
+           xlabel="Pearson r vs fatal-shooting rate")
+    ax.tick_params(axis="y", labelsize=8)
+    fig.tight_layout(); fig.savefig(FIGURES / "rural_medaccess.png"); plt.close(fig)
+
+
 def fig_lethality(d):
     sub = d.dropna(subset=["shoot_per_1k_vc", "log_density"])
     fig, ax = plt.subplots(figsize=(6.4, 4.6))
@@ -133,6 +227,12 @@ def main():
     # sheriff hypothesis
     ds = d.dropna(subset=["sheriff_share"])
     r_sher_rate = np.corrcoef(ds["sheriff_share"], ds["shootings_per_100k_yr"])[0, 1]
+
+    # medical-access (distance-to-trauma-care) discriminant test
+    medaccess_md, medaccess_corr = medical_access(d)
+    if medaccess_corr is not None:
+        fig_medaccess(medaccess_corr)
+        medaccess_corr.to_csv(PROCESSED / "rural_medaccess.csv", index=False)
 
     top = d.dropna(subset=["shoot_per_1k_vc"]).nlargest(6, "shoot_per_1k_vc")
 
@@ -215,7 +315,11 @@ def main():
              "only: rural gunshot victims are far from trauma care, so a shooting is more "
              "likely to **prove fatal** — part of the rural excess in *fatal* shootings may "
              "be higher case-fatality rather than more shootings. Numerator-only data cannot "
-             "separate the two. See `figures/rural_lethality.png`.\n")
+             "separate the two directly, but §7f tests the mechanism. "
+             "See `figures/rural_lethality.png`.\n")
+
+    if medaccess_md is not None:
+        b.append(medaccess_md)
 
     section("7. The rural paradox — lethality, not crime", "\n".join(b))
     log(f"Rural analysis: density coef on rate {m_rate.params['z_log_density']:+.2f}, "

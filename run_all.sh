@@ -15,6 +15,8 @@ echo "==> 02b fetch FBI arrests by race (encounter proxy)"
 uv run python src/02b_fetch_arrests.py
 echo "==> 02c fetch CDC homicide by race (offending proxy)"
 uv run python src/02c_fetch_homicide.py
+echo "==> 02d fetch CDC accident mortality (medical-access proxy)"
+uv run python src/02d_fetch_injury.py
 echo "==> 03 fetch contextual confounders (guns, alcohol, mental health, density)"
 uv run python src/03_fetch_context.py
 echo "==> 04 build state-year panel"
