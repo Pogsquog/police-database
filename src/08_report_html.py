@@ -313,6 +313,60 @@ def medaccess_block() -> str:
   </div>"""
 
 
+def conclusions_block() -> str:
+    """Plain-language, corrected conclusions — the headline synthesis."""
+    items = [
+        ("Race matters, but the gap is denominator-dependent — and not in excess of "
+         "offending.",
+         "Black Americans are fatally shot at ~2.6× the White per-resident rate, and that "
+         "gap <em>survives</em> every state confounder (crime, poverty, income, density, "
+         "guns → 2.8×). But it falls to ~1.3× per <em>arrest</em>, and against homicide "
+         "involvement (6.7×) it is <em>smaller</em> than proportional. Real and large per "
+         "resident, yet below what serious-violence involvement would predict."),
+        ("Rural rates are higher, and distance to trauma care is a likely contributor — "
+         "not a proven sole cause.",
+         "Sparse states have ~2.5× the rate on <em>similar</em> crime — a lethality-per-"
+         "encounter gap, not a crime gap. A placebo test is consistent with medical-access "
+         "case-fatality (car/fall deaths track the rate; the overdose control does not), but "
+         "officer isolation and thin de-escalation resources plausibly contribute too. The "
+         "&ldquo;rural sheriff&rdquo; explanation does <strong>not</strong> hold."),
+        ("Women's shootings differ in <em>character</em> — this is not a claim that women "
+         "are more likely to be shot.",
+         "These are cases-only models (women are ~5% of victims; there is no risk "
+         "denominator). <em>When</em> women are shot, the encounter is disproportionately a "
+         "mental-health crisis (OR 1.87) and unarmed (1.73), and much less often a fleeing "
+         "suspect (0.71)."),
+        ("Mental health is a through-line, not a footnote.",
+         "~20% of all shootings are flagged mental-illness-related; at the state level, "
+         "population mental-distress independently predicts a higher rate (IRR ~1.15). A "
+         "meaningful share of fatal police violence is effectively a mental-health-system "
+         "outcome — concentrated among older, White and female victims."),
+        ("Different <em>types</em> of fatal encounter cluster by demographic.",
+         "Age is the strongest within-incident factor: younger victims are far more often "
+         "unarmed and fleeing; older ones, mental-health-related. Black victims' shootings "
+         "are more often unarmed (1.34) and fleeing (1.21); White/Hispanic/Native victims' "
+         "more often mental-illness-flagged."),
+        ("The body-camera gap is about departments, and the South lags on transparency.",
+         "The raw Black/White body-camera OR (~1.9) is almost entirely <em>which agency was "
+         "involved</em> (collapses to ~1.3× within the same department); cameras are present "
+         "in only ~13% of Southern shootings (OR 0.64) vs elsewhere."),
+        ("The toll is rising, and under-discussed groups matter.",
+         "Deaths climbed ~995→~1,175/yr over the decade (~18%, steady — not a post-2020 "
+         "spike), and Native Americans are massively overrepresented in the sparse West "
+         "(4.7% of victims there vs 0.2% in dense states) — a disparity the Black/White "
+         "framing misses."),
+    ]
+    lis = "".join(f"<li><strong>{h}</strong> {body}</li>" for h, body in items)
+    return f"""
+<section id="conclusions">
+  <h2>Conclusions <span class="muted">(plain language)</span></h2>
+  <p class="muted">Read these as adjusted <em>associations</em> across places and cases,
+  not individual-level causation; the WaPo data is fatal-only with no exposure
+  denominator. Detail and caveats follow in the sections below.</p>
+  <ol class="findings">{lis}</ol>
+</section>"""
+
+
 def disparity_table() -> str:
     rows = [
         ("Black", "2.65 (2.30–3.06)", "2.82 (2.43–3.28)", "Not explained"),
@@ -479,13 +533,15 @@ def build_html() -> str:
 </header>
 
 <nav class="toc"><div class="wrap">
-  <a href="#data">Data</a><a href="#trend">Trend</a>
+  <a href="#conclusions">Conclusions</a><a href="#data">Data</a>
   <a href="#geography">Geography</a><a href="#rate">Rate model</a>
   <a href="#disparity">Disparity</a><a href="#incident">Within-incident</a>
   <a href="#findings">Findings</a><a href="#limits">Limitations</a>
 </div></nav>
 
 <main class="wrap">
+
+{conclusions_block()}
 
 <section id="data">
   <h2>1 · The data</h2>

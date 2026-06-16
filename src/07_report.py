@@ -68,12 +68,54 @@ def main():
     fig_density(cs)
 
     synthesis = """\
+### Conclusions (plain language)
+Read these as adjusted *associations* across places and cases, not individual-level
+causation; the WaPo data is fatal-only and has no exposure denominator.
+
+1. **Race matters, but the gap is denominator-dependent and not in excess of offending.**
+   Black Americans are fatally shot at ~2.6× the White per-resident rate, and that gap
+   *survives* every state confounder we tried (crime, poverty, income, density, guns →
+   2.8×). But it shrinks to ~1.3× per *arrest*, and against homicide involvement (6.7×) it
+   is *smaller* than proportional. So the disparity is real and large per resident, yet
+   below what involvement in serious violence would predict — population over-states it by
+   ignoring contact exposure; arrest/homicide under-state it by absorbing any upstream bias.
+2. **Rural rates are higher, and distance to trauma care is a likely contributor — not a
+   proven sole cause.** Sparse states have ~2.5× the rate on *similar* crime: a
+   lethality-per-encounter gap, not a crime gap. A placebo test is consistent with
+   medical-access case-fatality (car/fall deaths track the rate; the overdose control does
+   not), but officer isolation and thin de-escalation resources plausibly contribute too,
+   and per-capita accident deaths blend exposure with case-fatality. The "rural sheriff"
+   explanation does **not** hold (sparse shootings are mostly municipal police).
+3. **Women's shootings differ in character — this is *not* a statement that women are more
+   likely to be shot.** These are cases-only models (women are ~5% of victims, and there is
+   no risk denominator). *When* women are shot, the encounter is disproportionately a
+   mental-health crisis (OR 1.87) and unarmed (1.73), and much less often a fleeing suspect
+   (0.71).
+4. **Mental health is a through-line, not a footnote.** ~20% of all shootings are flagged
+   mental-illness-related; at the *state* level, population mental-distress independently
+   predicts a higher rate (IRR ~1.15). A meaningful share of fatal police violence is
+   effectively a mental-health-system outcome — concentrated among older, White and female
+   victims.
+5. **Different *types* of fatal encounter cluster by demographic.** Age is the strongest
+   within-incident factor: younger victims are far more often unarmed and fleeing; older
+   ones, mental-health-related. Black victims' shootings are more often unarmed (1.34) and
+   fleeing (1.21); White/Hispanic/Native victims' more often mental-illness-flagged.
+6. **The body-camera gap is about departments, and the South lags on transparency.** The
+   raw Black/White body-camera OR (~1.9) is almost entirely *which agency was involved*
+   (collapses to ~1.3× within the same department); cameras are present in only ~13% of
+   Southern shootings (OR 0.64) vs elsewhere.
+7. **The toll is rising and under-discussed groups matter.** Deaths climbed ~995→~1,175/yr
+   over the decade (~18%, steady — not a post-2020 spike), and Native Americans are
+   massively overrepresented in the sparse West (4.7% of victims there vs 0.2% in dense
+   states) — a disparity the Black/White framing misses.
+
 ### Figures
 - `figures/trend.png` — shootings per year (a clear upward drift, ~995→1,175).
 - `figures/state_rates.png` — per-capita rate by state.
 - `figures/rate_forest.png` — rate-model IRRs with 95% CIs.
 - `figures/density_scatter.png` — density vs rate.
 - `figures/rural_lethality.png` — fatal shootings per 1,000 violent crimes vs density.
+- `figures/rural_medaccess.png` — shooting-rate correlation by accident type (medical-access test).
 
 ### Key findings
 1. **Geography/urbanicity dominates the per-capita rate.** Population density is the

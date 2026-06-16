@@ -4,7 +4,7 @@ A reproducible analysis of the Washington Post Fatal Police Shootings dataset (2
 
 
 ## 1. Data profile & cleaning (WaPo files)
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
 
 **Incidents:** 10,430 fatal shootings, 2015-01-02 → 2024-12-31.
 **Agencies:** 3,727 agencies (7 types).
@@ -118,7 +118,7 @@ _logged 2026-06-16 00:53 UTC_
 
 
 ## 2. Census demographics fetch
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
 
 ACS5 demographics fetched for years: [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024].
 
@@ -126,14 +126,14 @@ Rows by source: {'ACS5': 510}. States×years = 51×10.
 
 
 ## 3. FBI violent-crime fetch
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
 
 FBI CDE violent-crime rates fetched for 51 states, 10 years (510 rows).
 National mean violent-crime rate across panel: 381 per 100k.
 
 
 ## 3b. FBI arrests-by-race fetch (encounter proxy)
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
 
 FBI arrest totals by race fetched for 51 states × 10 years (510 state-years; 1020 state-year-race rows).
 
@@ -143,7 +143,7 @@ Used as the **arrest-exposure denominator** in the disparity benchmark (script 0
 
 
 ## 3c. CDC homicide-by-race fetch (offending proxy)
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
 
 CDC WONDER homicide victimization by race, US 2015–2020 (ICD-10 X85–Y09, Y87.1). National only — WONDER's API blocks state grouping.
 
@@ -158,7 +158,7 @@ CDC WONDER homicide victimization by race, US 2015–2020 (ICD-10 X85–Y09, Y87
 
 
 ## 3d. CDC accident-mortality fetch (medical-access proxy)
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
 
 State accident-mortality proxies for the 'distance to medical care' test (see 05b §7f). Per-capita accident deaths whose lethality depends on fast trauma care (motor vehicle, falls) vs a negative control whose lethality does not (drug overdose).
 
@@ -172,7 +172,7 @@ WONDER's API serves national data only, so these state-level series come from CD
 
 
 ## 4. Contextual confounders fetch (guns, alcohol, mental health, density)
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
 
 - NICS background checks: 459 state-years (2015-2023).
 - CDC CDI: ['alcohol_binge_pct', 'mental_distress_pct'] across 2019-2023 (51 states; BRFSS, not every year per state — gaps filled with state means at panel build).
@@ -180,7 +180,7 @@ _logged 2026-06-16 00:53 UTC_
 
 
 ## 5. State-year panel assembly
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
 
 Panel assembled: **510 state-years** (51 states × 10 years).
 Total shootings in panel: **10,430** (territories excluded).
@@ -203,7 +203,7 @@ Covariate coverage (non-null %):
 
 
 ## 6. Rate & disparity models
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
 
 ### 6a. Overall per-capita rate model (Poisson GLM, log-pop offset, cluster-robust SE by state; N=478 state-years)
 
@@ -283,7 +283,7 @@ The involvement proxy (**6.7×**) is *larger* than the shooting disparity per re
 
 
 ## 7. The rural paradox — lethality, not crime
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
 
 **The puzzle:** denser (more urban) states have *lower* per-capita fatal shooting rates (rate IRR ≈ 0.67 per +1 SD of log-density), even though, *within* any state, cities carry the violent crime. The resolution is that the gradient is a **lethality-per-encounter** gap, not a crime gap.
 
@@ -358,7 +358,7 @@ The pattern is exactly what the medical-access theory predicts. Trauma-access-se
 
 
 ## 8. Within-incident models (cases only)
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
 
 Odds ratios from logistic regression; **White** is the race reference, male the gender reference. Age is per +10 years. All models include year fixed effects. *Cases only — conditional on having been shot.*
 
@@ -426,7 +426,48 @@ State fixed effects leave the OR ~unchanged (it is **not** a between-state effec
 
 
 ## 9. Synthesis, figures & limitations
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
+
+### Conclusions (plain language)
+Read these as adjusted *associations* across places and cases, not individual-level
+causation; the WaPo data is fatal-only and has no exposure denominator.
+
+1. **Race matters, but the gap is denominator-dependent and not in excess of offending.**
+   Black Americans are fatally shot at ~2.6× the White per-resident rate, and that gap
+   *survives* every state confounder we tried (crime, poverty, income, density, guns →
+   2.8×). But it shrinks to ~1.3× per *arrest*, and against homicide involvement (6.7×) it
+   is *smaller* than proportional. So the disparity is real and large per resident, yet
+   below what involvement in serious violence would predict — population over-states it by
+   ignoring contact exposure; arrest/homicide under-state it by absorbing any upstream bias.
+2. **Rural rates are higher, and distance to trauma care is a likely contributor — not a
+   proven sole cause.** Sparse states have ~2.5× the rate on *similar* crime: a
+   lethality-per-encounter gap, not a crime gap. A placebo test is consistent with
+   medical-access case-fatality (car/fall deaths track the rate; the overdose control does
+   not), but officer isolation and thin de-escalation resources plausibly contribute too,
+   and per-capita accident deaths blend exposure with case-fatality. The "rural sheriff"
+   explanation does **not** hold (sparse shootings are mostly municipal police).
+3. **Women's shootings differ in character — this is *not* a statement that women are more
+   likely to be shot.** These are cases-only models (women are ~5% of victims, and there is
+   no risk denominator). *When* women are shot, the encounter is disproportionately a
+   mental-health crisis (OR 1.87) and unarmed (1.73), and much less often a fleeing suspect
+   (0.71).
+4. **Mental health is a through-line, not a footnote.** ~20% of all shootings are flagged
+   mental-illness-related; at the *state* level, population mental-distress independently
+   predicts a higher rate (IRR ~1.15). A meaningful share of fatal police violence is
+   effectively a mental-health-system outcome — concentrated among older, White and female
+   victims.
+5. **Different *types* of fatal encounter cluster by demographic.** Age is the strongest
+   within-incident factor: younger victims are far more often unarmed and fleeing; older
+   ones, mental-health-related. Black victims' shootings are more often unarmed (1.34) and
+   fleeing (1.21); White/Hispanic/Native victims' more often mental-illness-flagged.
+6. **The body-camera gap is about departments, and the South lags on transparency.** The
+   raw Black/White body-camera OR (~1.9) is almost entirely *which agency was involved*
+   (collapses to ~1.3× within the same department); cameras are present in only ~13% of
+   Southern shootings (OR 0.64) vs elsewhere.
+7. **The toll is rising and under-discussed groups matter.** Deaths climbed ~995→~1,175/yr
+   over the decade (~18%, steady — not a post-2020 spike), and Native Americans are
+   massively overrepresented in the sparse West (4.7% of victims there vs 0.2% in dense
+   states) — a disparity the Black/White framing misses.
 
 ### Figures
 - `figures/trend.png` — shootings per year (a clear upward drift, ~995→1,175).
@@ -434,6 +475,7 @@ _logged 2026-06-16 00:53 UTC_
 - `figures/rate_forest.png` — rate-model IRRs with 95% CIs.
 - `figures/density_scatter.png` — density vs rate.
 - `figures/rural_lethality.png` — fatal shootings per 1,000 violent crimes vs density.
+- `figures/rural_medaccess.png` — shooting-rate correlation by accident type (medical-access test).
 
 ### Key findings
 1. **Geography/urbanicity dominates the per-capita rate.** Population density is the
@@ -487,6 +529,6 @@ _logged 2026-06-16 00:53 UTC_
 
 
 ## 10. HTML report
-_logged 2026-06-16 00:53 UTC_
+_logged 2026-06-16 01:21 UTC_
 
-Rendered self-contained `report.html` (345 KB) with embedded figures and result tables. Open it in any browser; regenerate with `uv run python src/08_report_html.py`.
+Rendered self-contained `report.html` (348 KB) with embedded figures and result tables. Open it in any browser; regenerate with `uv run python src/08_report_html.py`.
